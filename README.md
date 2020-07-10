@@ -1,11 +1,11 @@
 <h1 align="center">
-  <img alt="UDF Cron Jobs" title="UDF Cron Jobs" src=".github/gostack-typescript.png" width="200px" />
+  <img alt="UDF Cron Jobs" title="UDF Cron Jobs" src=".github/logo-big.png" width="200px" />
 </h1>
 
 <h3 align="center">
   Middleware de integração da UDF:
   <br>
-  Essa será é uma aplicação feita em NodeJS com Jobs cronometrados e automatizados para integração entre vários serviços utilizados pela UDF, bem como, Tray, Netsuite, Portal do líder, PayU e Intelipost.
+  Essa é uma aplicação feita em NodeJS com Jobs cronometrados e automatizados para integração entre vários serviços utilizados pela UDF, bem como, Tray, Netsuite, Portal do líder, PayU e Intelipost.
 </h3>
 
 <!-- <p align="center">See in action: <a href="#">click here</a></p> -->
