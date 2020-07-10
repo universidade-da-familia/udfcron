@@ -35,7 +35,7 @@ These instructions will get you a copy of the project up and running on your loc
 What things you need to install the software and how to install them
 
 ```
-$> git clone https://github.com/lcoalves/udfcron.git
+$> git clone https://github.com/universidade-da-familia/udfcron.git
 ```
 
 ### Installing
