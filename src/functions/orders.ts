@@ -2,6 +2,9 @@ import storage from 'node-persist';
 
 import api from '../services/api';
 
+import { OrderCompleteTray } from '../types/tray';
+import { OrderNetsuite } from '../types/netsuite';
+
 interface Response {
   paging: {
     total: number;
@@ -15,64 +18,8 @@ interface Response {
 
 interface Order {
   Order: {
-    status: string;
     id: string;
-    date: string;
-    customer_id: string;
-    partial_total: string;
-    taxes: string;
-    discount: string;
-    point_sale: string;
-    shipment: string;
-    shipment_value: string;
-    shipment_date: string;
-    discount_coupon: string;
-    payment_method_rate: string;
-    value_1: string;
-    payment_form: string;
-    sending_code: string;
-    session_id: string;
-    total: string;
-    payment_date: string;
-    access_code: string;
-    shipment_integrator: string;
-    modified: string;
-    id_quotation: string;
-    estimated_delivery_date: string;
-    external_code: string;
-    has_payment: string;
-    has_shipment: string;
-    has_invoice: string;
-    total_comission_user: string;
-    total_comission: string;
-    is_traceable: string;
-    OrderStatus: {
-      id: string;
-      default: string;
-      type: string;
-      show_backoffice: string;
-      allow_edit_order: string;
-      description: string;
-      status: string;
-      show_status_central: string;
-      background: string;
-    };
-    ProductsSold: Products[];
-    Payment: Payment[];
-    OrderTransactions: Transaction[];
   };
-}
-
-interface Products {
-  id: string;
-}
-
-interface Payment {
-  id: string;
-}
-
-interface Transaction {
-  url_payment: string;
 }
 
 // pegar todos os pedidos em /orders
@@ -84,7 +31,7 @@ interface Transaction {
 //  2.1. dados de entrega
 // 3. dados dos produtos
 
-const orders = async (): Promise<Order[]> => {
+const orders = async () => {
   await storage.init();
 
   const auth = await storage.getItem('auth');
@@ -92,24 +39,83 @@ const orders = async (): Promise<Order[]> => {
   const response = await api.get<Response>('/orders', {
     params: {
       access_token: auth.access_token,
-      limit: 1,
+      // limit: 1,
       status: '%A ENVIAR%',
     },
   });
 
-  const { id } = response.data.Orders[0].Order;
+  const completedOrders = response.data.Orders.map(
+    async (order: Order): Promise<OrderNetsuite> => {
+      const responseComplete = await api.get<OrderCompleteTray>(
+        `/orders/${order.Order.id}/complete`,
+        {
+          params: {
+            access_token: auth.access_token,
+          },
+        },
+      );
 
-  const responseComplete = await api.get(`/orders/${id}/complete`, {
-    params: {
-      access_token: auth.access_token,
+      const orderComplete = responseComplete.data.Order;
+
+      // console.log(orderComplete.Customer);
+
+      const products = orderComplete.ProductsSold.map(product => {
+        return {
+          netsuite_id: product.ProductsSold.reference,
+          quantity: product.ProductsSold.quantity,
+        };
+      });
+
+      const fullname = orderComplete.Customer.name.split(' ');
+      const firstname = fullname[0];
+      fullname.shift();
+      const lastname = fullname.length >= 1 ? fullname.join(' ') : '';
+
+      return {
+        id: orderComplete.id,
+        shipment: orderComplete.shipment,
+        installment: orderComplete.installment,
+        payment_method: orderComplete.payment_method,
+        total: orderComplete.total,
+        payment_url:
+          orderComplete.OrderTransactions.length > 0
+            ? orderComplete.OrderTransactions[0].url_payment
+            : '',
+        customer: {
+          id: orderComplete.Customer.id,
+          is_business: !!orderComplete.Customer.cnpj,
+          cpf_cnpj: orderComplete.Customer.cnpj
+            ? orderComplete.Customer.cnpj
+            : orderComplete.Customer.cpf,
+          name: orderComplete.Customer.name,
+          firstname,
+          lastname,
+          sex: orderComplete.Customer.gender === '0' ? 'M' : 'F',
+          company_name: orderComplete.Customer.company_name,
+          phone: orderComplete.Customer.phone || '',
+          cellphone: orderComplete.Customer.cellphone || '',
+          email: orderComplete.Customer.email,
+          country: orderComplete.Customer.country === 'Brasil' ? 'BR' : '',
+          cep: orderComplete.Customer.zip_code,
+          uf: orderComplete.Customer.state,
+          city: orderComplete.Customer.city,
+          street: orderComplete.Customer.address,
+          street_number: orderComplete.Customer.number,
+          neighborhood: orderComplete.Customer.neighborhood,
+          complement: orderComplete.Customer.complement,
+        },
+        products,
+      };
     },
-  });
+  );
 
-  console.log(responseComplete.data.Order.id);
+  return completedOrders;
 
-  const allOrders = response.data.Orders;
+  // console.log(responseComplete.data.Order.id);
 
-  return allOrders;
+  // const allOrders = response.data.Orders;
+
+  // return allOrders;
 };
 
 export default orders;
