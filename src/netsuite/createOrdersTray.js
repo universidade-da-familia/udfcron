@@ -87,13 +87,13 @@ define(['N/record', 'N/search'], function (record, search) {
   function createOrder(context) {
     const customer = record.load({
       type: record.Type.CUSTOMER,
-      id: context.entity.netsuite_id,
+      id: context.customer_netsuite_id,
       isDynamic: true,
     });
 
     customer.setValue({
       fieldId: 'custentity_enl_legalname',
-      value: context.entity.name,
+      value: context.customer.name,
     });
 
     customer.setValue({
@@ -111,147 +111,106 @@ define(['N/record', 'N/search'], function (record, search) {
       value: true,
     });
 
-    const numberOfAddresses = customer.getLineCount({
+    customer.selectNewLine({ sublistId: 'addressbook' });
+
+    const searchColumns = ['internalid'];
+    const ufIds = search
+      .create({
+        type: 'customlist_enl_state',
+        filters: [['name', 'is', context.customer.uf]],
+        columns: searchColumns,
+      })
+      .run()
+      .getRange({
+        start: 0,
+        end: 1000,
+      })
+      .map(function (result) {
+        const id = result.getValue({ name: 'internalid' });
+
+        return id;
+      });
+    const cityIds = search
+      .create({
+        type: 'customrecord_enl_cities',
+        filters: [['name', 'is', context.customer.city]],
+        columns: searchColumns,
+      })
+      .run()
+      .getRange({
+        start: 0,
+        end: 1000,
+      })
+      .map(function (result) {
+        const id = result.getValue({ name: 'internalid' });
+
+        return id;
+      });
+
+    const addressSubrecord = customer.getCurrentSublistSubrecord({
       sublistId: 'addressbook',
+      fieldId: 'addressbookaddress',
     });
 
-    if (numberOfAddresses > 0) {
-      for (var index = 0; index < numberOfAddresses; index += 1) {
-        customer.selectLine({
-          sublistId: 'addressbook',
-          line: index,
-        });
+    customer.setCurrentSublistValue({
+      sublistId: 'addressbook',
+      fieldId: 'defaultbilling',
+      value: true,
+    });
+    customer.setCurrentSublistValue({
+      sublistId: 'addressbook',
+      fieldId: 'defaultshipping',
+      value: true,
+    });
 
-        customer.removeCurrentSublistSubrecord({
-          sublistId: 'addressbook',
-          fieldId: 'addressbookaddress',
-        });
+    customer.setCurrentSublistValue({
+      sublistId: 'addressbook',
+      fieldId: 'label',
+      value: 'Entrega Tray',
+    });
 
-        customer.commitLine({
-          sublistId: 'addressbook',
-        });
-      }
-    }
+    addressSubrecord.setValue({
+      fieldId: 'country',
+      value: 'BR',
+    });
+    addressSubrecord.setValue({
+      fieldId: 'zip',
+      value: context.customer.cep,
+    });
+    addressSubrecord.setValue({
+      fieldId: 'addr1',
+      value: context.customer.street,
+    });
+    addressSubrecord.setValue({
+      fieldId: 'custrecord_enl_numero',
+      value: context.customer.street_number,
+    });
+    addressSubrecord.setValue({
+      fieldId: 'addr2',
+      value: context.customer.complement,
+    });
+    addressSubrecord.setValue({
+      fieldId: 'addr3',
+      value: context.customer.neighborhood,
+    });
+    addressSubrecord.setValue({
+      fieldId: 'custrecord_enl_uf',
+      value: parseInt(ufIds[0]) || '',
+    });
+    addressSubrecord.setValue({
+      fieldId: 'custrecord_enl_city',
+      value: parseInt(cityIds[0]) || '',
+    });
+    addressSubrecord.setValue({
+      fieldId: 'addressee',
+      value: context.customer.name,
+    });
+    // addressSubrecord.setValue({
+    //   fieldId: 'custrecordudf_dashboard_address_id',
+    //   value: String(context.customer.id) + 'tray',
+    // });
 
-    if (context.netsuiteAddresses && context.netsuiteAddresses.length > 0) {
-      customer.selectNewLine({ sublistId: 'addressbook' });
-
-      context.netsuiteAddresses.forEach(function (address, index) {
-        const searchColumns = ['internalid'];
-        const ufIds = search
-          .create({
-            type: 'customlist_enl_state',
-            filters: [['name', 'is', address.uf]],
-            columns: searchColumns,
-          })
-          .run()
-          .getRange({
-            start: 0,
-            end: 1000,
-          })
-          .map(function (result) {
-            const id = result.getValue({ name: 'internalid' });
-
-            return id;
-          });
-        const cityIds = search
-          .create({
-            type: 'customrecord_enl_cities',
-            filters: [['name', 'is', address.city]],
-            columns: searchColumns,
-          })
-          .run()
-          .getRange({
-            start: 0,
-            end: 1000,
-          })
-          .map(function (result) {
-            const id = result.getValue({ name: 'internalid' });
-
-            return id;
-          });
-
-        const addressSubrecord = customer.getCurrentSublistSubrecord({
-          sublistId: 'addressbook',
-          fieldId: 'addressbookaddress',
-        });
-
-        if (parseInt(context.address_id) === parseInt(address.id)) {
-          customer.setCurrentSublistValue({
-            sublistId: 'addressbook',
-            fieldId: 'defaultbilling',
-            value: true,
-          });
-          customer.setCurrentSublistValue({
-            sublistId: 'addressbook',
-            fieldId: 'defaultshipping',
-            value: true,
-          });
-        }
-
-        if (address.type === 'other') {
-          customer.setCurrentSublistValue({
-            sublistId: 'addressbook',
-            fieldId: 'label',
-            value: address.other_type_name || address.street,
-          });
-        } else if (address.type === 'home') {
-          customer.setCurrentSublistValue({
-            sublistId: 'addressbook',
-            fieldId: 'label',
-            value: 'Minha casa',
-          });
-        } else {
-          customer.setCurrentSublistValue({
-            sublistId: 'addressbook',
-            fieldId: 'label',
-            value: 'Meu trabalho',
-          });
-        }
-        addressSubrecord.setValue({
-          fieldId: 'country',
-          value: 'BR',
-        });
-        addressSubrecord.setValue({
-          fieldId: 'zip',
-          value: address.cep,
-        });
-        addressSubrecord.setValue({
-          fieldId: 'addr1',
-          value: address.street,
-        });
-        addressSubrecord.setValue({
-          fieldId: 'custrecord_enl_numero',
-          value: address.street_number,
-        });
-        addressSubrecord.setValue({
-          fieldId: 'addr2',
-          value: address.complement,
-        });
-        addressSubrecord.setValue({
-          fieldId: 'addr3',
-          value: address.neighborhood,
-        });
-        addressSubrecord.setValue({
-          fieldId: 'custrecord_enl_uf',
-          value: parseInt(ufIds[0]) || '',
-        });
-        addressSubrecord.setValue({
-          fieldId: 'custrecord_enl_city',
-          value: parseInt(cityIds[0]) || '',
-        });
-        addressSubrecord.setValue({
-          fieldId: 'addressee',
-          value: address.receiver || context.entity.name,
-        });
-        addressSubrecord.setValue({
-          fieldId: 'custrecordudf_dashboard_address_id',
-          value: address.id,
-        });
-
-        customer.commitLine({ sublistId: 'addressbook' });
-      });
-    }
+    customer.commitLine({ sublistId: 'addressbook' });
 
     customer.save({
       ignoreMandatoryFields: false,
@@ -262,7 +221,7 @@ define(['N/record', 'N/search'], function (record, search) {
       type: record.Type.SALES_ORDER,
       isDynamic: true,
       defaultValues: {
-        entity: context.entity.netsuite_id,
+        entity: context.customer_netsuite_id,
       },
     });
 
@@ -271,69 +230,50 @@ define(['N/record', 'N/search'], function (record, search) {
     salesOrder.setValue({ fieldId: 'class', value: '1' });
     salesOrder.setValue({ fieldId: 'location', value: '1' });
 
-    if (context.card === null) {
-      salesOrder.setValue({ fieldId: 'terms', value: '10' });
+    if (context.payment_method === 'Boleto - Yapay') {
+      salesOrder.setValue({ fieldId: 'terms', value: '18' });
     } else {
-      if (context.installments === 1) {
-        salesOrder.setValue({ fieldId: 'terms', value: '1' });
+      if (context.installment === 1) {
+        salesOrder.setValue({ fieldId: 'terms', value: '20' });
       }
 
-      if (context.installments === 2) {
-        salesOrder.setValue({ fieldId: 'terms', value: '15' });
+      if (context.installment === 2) {
+        salesOrder.setValue({ fieldId: 'terms', value: '24' });
       }
 
-      if (context.installments === 3) {
-        salesOrder.setValue({ fieldId: 'terms', value: '16' });
-      }
-
-      // grava o pedido como pendente de aprovação (pagamento pendente na payu)
-      if (context.orderstatus) {
-        salesOrder.setValue({
-          fieldId: 'orderstatus',
-          value: context.orderstatus,
-        });
+      if (context.installment === 3) {
+        salesOrder.setValue({ fieldId: 'terms', value: '25' });
       }
 
       // grava o pedido como pendente de aprovação (pagamento pendente na payu)
-      if (context.origstatus) {
-        salesOrder.setValue({
-          fieldId: 'origstatus',
-          value: context.origstatus,
-        });
-      }
+      // if (context.orderstatus) {
+      //   salesOrder.setValue({
+      //     fieldId: 'orderstatus',
+      //     value: context.orderstatus,
+      //   });
+      // }
 
       // grava o pedido como pendente de aprovação (pagamento pendente na payu)
-      if (context.statusRef) {
-        salesOrder.setValue({
-          fieldId: 'statusRef',
-          value: context.statusRef,
-        });
-      }
+      // if (context.origstatus) {
+      //   salesOrder.setValue({
+      //     fieldId: 'origstatus',
+      //     value: context.origstatus,
+      //   });
+      // }
+
+      // grava o pedido como pendente de aprovação (pagamento pendente na payu)
+      // if (context.statusRef) {
+      //   salesOrder.setValue({
+      //     fieldId: 'statusRef',
+      //     value: context.statusRef,
+      //   });
+      // }
     }
 
-    if (context.order_type === 'Curso') {
-      salesOrder.setValue({
-        fieldId: 'custbodyudf_order_type',
-        value: 1,
-      });
-    }
-
-    if (
-      context.order_type === 'Capacitação de líderes' ||
-      context.order_type === 'Treinamento de treinadores'
-    ) {
-      salesOrder.setValue({
-        fieldId: 'custbodyudf_order_type',
-        value: 2,
-      });
-    }
-
-    if (context.order_type === 'Seminário') {
-      salesOrder.setValue({
-        fieldId: 'custbodyudf_order_type',
-        value: 3,
-      });
-    }
+    salesOrder.setValue({
+      fieldId: 'custbodyudf_order_type',
+      value: 4,
+    });
 
     salesOrder.setValue({
       fieldId: 'custbody_enl_operationtypeid',
@@ -345,29 +285,22 @@ define(['N/record', 'N/search'], function (record, search) {
     });
     salesOrder.setValue({
       fieldId: 'custbodyudf_observacao_cliente',
-      value: 'Pedido gerado automaticamente através da plataforma de líderes',
-    });
-
-    salesOrder.setValue({
-      fieldId: 'custbody_rsc_payu_json',
-      value: context.payu_json,
-    });
-    salesOrder.setValue({
-      fieldId: 'custbody_rsc_payu_order_id',
-      value: context.payu_order_id,
-    });
-    salesOrder.setValue({
-      fieldId: 'custbody_rsc_payu_link_payment',
-      value: context.payu_link_payment,
-    });
-    salesOrder.setValue({
-      fieldId: 'custbody_rsc_status_payu',
-      value: context.payu_order_status,
+      value: 'Pedido gerado automaticamente através da integração com a Tray',
     });
 
     salesOrder.setValue({ fieldId: 'custbody_enl_freighttype', value: '1' });
 
-    if (context.shipping_option.delivery_method_name === 'Correios PAC') {
+    if (context.shipment === 'Frete grátis') {
+      salesOrder.setValue({
+        fieldId: 'shipmethod',
+        value: 3647,
+      });
+
+      salesOrder.setValue({
+        fieldId: 'custbody_enl_carrierid',
+        value: 4,
+      });
+    } else if (context.shipment === 'Econômico') {
       salesOrder.setValue({
         fieldId: 'shipmethod',
         value: 3647,
@@ -378,7 +311,7 @@ define(['N/record', 'N/search'], function (record, search) {
         value: 4,
       });
     } else if (
-      context.shipping_option.delivery_method_name === 'Correios Sedex'
+      context.shipment === 'Expresso'
     ) {
       salesOrder.setValue({
         fieldId: 'shipmethod',
@@ -390,7 +323,7 @@ define(['N/record', 'N/search'], function (record, search) {
         value: 4,
       });
     } else if (
-      context.shipping_option.delivery_method_name === 'Braspress Standard'
+      context.shipment === 'Braspress'
     ) {
       salesOrder.setValue({
         fieldId: 'shipmethod',
@@ -402,7 +335,7 @@ define(['N/record', 'N/search'], function (record, search) {
         value: 3,
       });
     } else if (
-      context.shipping_option.delivery_method_name === 'Braspress Multiply'
+      context.shipment === 'Braspress Multiply'
     ) {
       salesOrder.setValue({
         fieldId: 'shipmethod',
@@ -414,7 +347,7 @@ define(['N/record', 'N/search'], function (record, search) {
         value: 3,
       });
     } else if (
-      context.shipping_option.delivery_method_name === 'Correios Sedex 10'
+      context.shipment === 'Correios Sedex 10'
     ) {
       salesOrder.setValue({
         fieldId: 'shipmethod',
@@ -426,7 +359,7 @@ define(['N/record', 'N/search'], function (record, search) {
         value: 4,
       });
     } else if (
-      context.shipping_option.delivery_method_name === 'Braspress Aéreo'
+      context.shipment === 'Braspress Aéreo'
     ) {
       salesOrder.setValue({
         fieldId: 'shipmethod',
@@ -438,7 +371,7 @@ define(['N/record', 'N/search'], function (record, search) {
         value: 3,
       });
     } else if (
-      context.shipping_option.delivery_method_name === 'Azul Cargo Express'
+      context.shipment === 'Azul Cargo Express'
     ) {
       salesOrder.setValue({
         fieldId: 'shipmethod',
@@ -450,7 +383,7 @@ define(['N/record', 'N/search'], function (record, search) {
         value: 1,
       });
     } else if (
-      context.shipping_option.delivery_method_name === 'Araçalog Aéreo'
+      context.shipment === 'Araçalog Aéreo'
     ) {
       salesOrder.setValue({
         fieldId: 'shipmethod',
@@ -462,7 +395,7 @@ define(['N/record', 'N/search'], function (record, search) {
         value: 2,
       });
     } else if (
-      context.shipping_option.delivery_method_name === 'Aracalog Standard'
+      context.shipment === 'Aracalog Standard'
     ) {
       salesOrder.setValue({
         fieldId: 'shipmethod',
@@ -474,7 +407,7 @@ define(['N/record', 'N/search'], function (record, search) {
         value: 2,
       });
     } else if (
-      context.shipping_option.delivery_method_name === 'Retirar na UDF'
+      context.shipment === 'Retirar na UDF'
     ) {
       if (context.gifts && context.gifts.length > 0) {
         salesOrder.setValue({
@@ -518,17 +451,17 @@ define(['N/record', 'N/search'], function (record, search) {
       value: 0,
     });
 
-    if (context.shipping_cost === 0) {
+    if (context.shipment === 'Frete grátis') {
       // valor frete aba informacoes fiscais
       salesOrder.setValue({
         fieldId: 'custbody_enl_trans_freightamount',
-        value: context.shipping_option.final_shipping_cost || 0,
+        value: context.shipment_value_intelipost || 0,
       });
     } else {
       // valor frete aba informacoes fiscais
       salesOrder.setValue({
         fieldId: 'custbody_enl_trans_freightamount',
-        value: context.shipping_cost || 0,
+        value: context.shipment_value || 0,
       });
     }
 
@@ -539,7 +472,7 @@ define(['N/record', 'N/search'], function (record, search) {
     // avalara actualization
     shippingAddress.setValue({
       fieldId: 'zipcode',
-      value: context.shipping_cep,
+      value: context.customer.cep,
     });
 
     salesOrder.selectNewLine({ sublistId: 'item' });
@@ -557,34 +490,13 @@ define(['N/record', 'N/search'], function (record, search) {
         value: product.quantity,
       });
 
-      if (context.order_type === 'Curso') {
-        salesOrder.setCurrentSublistValue({
-          sublistId: 'item',
-          fieldId: 'price',
-          value: 3,
-        });
-      }
+      salesOrder.setCurrentSublistValue({
+        sublistId: 'item',
+        fieldId: 'price',
+        value: 30,
+      });
 
-      if (
-        context.order_type === 'Capacitação de líderes' ||
-        context.order_type === 'Treinamento de treinadores'
-      ) {
-        salesOrder.setCurrentSublistValue({
-          sublistId: 'item',
-          fieldId: 'price',
-          value: 6,
-        });
-      }
-
-      if (context.order_type === 'Seminário') {
-        salesOrder.setCurrentSublistValue({
-          sublistId: 'item',
-          fieldId: 'price',
-          value: 9,
-        });
-      }
-
-      if (context.shipping_cost === 0) {
+      if (context.shipment_value === 0) {
         salesOrder.setCurrentSublistValue({
           sublistId: 'item',
           fieldId: 'custcol_enl_line_freightamount',
@@ -601,13 +513,6 @@ define(['N/record', 'N/search'], function (record, search) {
       salesOrder.commitLine({ sublistId: 'item' });
     });
 
-    if (context.gifts && context.gifts.length > 0) {
-      salesOrder.setValue({
-        fieldId: 'custbody_udf_obs_envio',
-        value: 'Brindes: \n' + context.gifts,
-      });
-    }
-
     const salesOrderId = salesOrder.save({
       ignoreMandatoryFields: false,
       enableSourcing: false,
@@ -618,9 +523,11 @@ define(['N/record', 'N/search'], function (record, search) {
 
   function store(context) {
     try {
-      const orders = context;
+      const orders = context.completedOrders;
 
-      const createdOrders = orders.map(order => {
+      log.debug({ title: 'orderssss', details: orders })
+
+      const createdOrders = orders.map(function(order) {
         const customers = search
           .create({
             type: search.Type.CUSTOMER,
@@ -644,10 +551,10 @@ define(['N/record', 'N/search'], function (record, search) {
         } else {
           const customerId = createCustomer(order.customer);
 
-          context.customer_netsuite_id = customerId;
+          order.customer_netsuite_id = customerId;
         }
 
-        const orderId = createOrder(context);
+        const orderId = createOrder(order);
 
         return {
           id: order.id,
@@ -657,7 +564,6 @@ define(['N/record', 'N/search'], function (record, search) {
 
       return createdOrders;
     } catch (err) {
-      log.debug({ title: 'order err', details: err });
       return err;
     }
   }

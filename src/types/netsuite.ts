@@ -1,6 +1,8 @@
 export interface OrderNetsuite {
   id: string;
   shipment: string;
+  shipment_value: string;
+  shipment_value_intelipost: string;
   installment: string;
   payment_method: string;
   total: string;
