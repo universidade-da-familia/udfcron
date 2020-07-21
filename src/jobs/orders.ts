@@ -6,7 +6,7 @@ const auth = (): void => {
   const Job = new CronJob(
     '*/15 * * * * *',
     async () => {
-      console.log(await orderFunction());
+      await orderFunction();
     },
     null,
     true,
