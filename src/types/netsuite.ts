@@ -36,4 +36,5 @@ export interface CustomerNetsuite {
 export interface ProductsNetsuite {
   netsuite_id: string;
   quantity: string;
+  freight_per_item: number;
 }

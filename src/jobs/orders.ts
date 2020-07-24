@@ -4,7 +4,7 @@ import orderFunction from '../functions/orders';
 
 const auth = (): void => {
   const Job = new CronJob(
-    '*/15 * * * * *',
+    '0 */2 * * * *',
     async () => {
       await orderFunction();
     },

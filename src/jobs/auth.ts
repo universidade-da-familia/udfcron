@@ -5,7 +5,7 @@ import authFunction from '../functions/auth';
 const auth = (): void => {
   const Job = new CronJob(
     // '* 59 */2 * * *',
-    '*/10 * * * * *',
+    '0 */3 * * * *',
     async () => {
       console.log(await authFunction());
     },

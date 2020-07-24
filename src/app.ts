@@ -4,11 +4,11 @@ import express from 'express';
 import 'express-async-errors';
 import cors from 'cors';
 
-import authJob from './jobs/auth';
+// import authJob from './jobs/auth';
 import ordersJob from './jobs/orders';
 
 ordersJob();
-authJob();
+// authJob();
 
 const app = express();
 

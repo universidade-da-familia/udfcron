@@ -1,12 +1,11 @@
-import storage from 'node-persist';
+// import storage from 'node-persist';
 
 import axios from 'axios';
 
 import api from '../services/api';
 
-import { Auth } from '../types/auth';
-import { OrderCompleteTray } from '../types/tray';
-import { OrderNetsuite } from '../types/netsuite';
+import { AuthTray, OrderCompleteTray } from '../types/tray';
+import { OrderNetsuite, ProductsNetsuite } from '../types/netsuite';
 
 interface Response {
   paging: {
@@ -34,16 +33,25 @@ const apiNetsuite = axios.create({
   },
 });
 
-// pegar todos os pedidos em /orders
-// fazer um map nesses pedidos, pegando os dados completos de cada pedido em /orders/${id}/complete
-// para cada pedido precisamos montar um array de objetos com:
-// 1. dados do pedido
-//  1.1. forma de envio
-// 2. dados do cliente
-//  2.1. dados de entrega
-// 3. dados dos produtos
+const getProductReference = async (
+  product_id: string,
+  auth: AuthTray,
+): Promise<string> => {
+  const responseProduct = await api.get(`/products/${product_id}`, {
+    params: {
+      access_token: auth.access_token,
+    },
+  });
 
-const mountOrder = async (order: Order, auth: Auth): Promise<OrderNetsuite> => {
+  const productReference = responseProduct.data.Product.reference;
+
+  return productReference as string;
+};
+
+const mountOrder = async (
+  order: Order,
+  auth: AuthTray,
+): Promise<OrderNetsuite> => {
   const responseComplete = await api.get<OrderCompleteTray>(
     `/orders/${order.Order.id}/complete`,
     {
@@ -102,26 +110,32 @@ const mountOrder = async (order: Order, auth: Auth): Promise<OrderNetsuite> => {
     }
   }
 
-  const products = orderComplete.ProductsSold.map(
-    ({ ProductsSold: product }) => {
-      const product_subtotal = Number(product.quantity) * Number(product.price);
-      const product_subtotal_percent =
-        product_subtotal / Number(orderComplete.partial_total);
+  const products = [] as ProductsNetsuite[];
+  // eslint-disable-next-line no-restricted-syntax
+  for (const product of orderComplete.ProductsSold) {
+    // eslint-disable-next-line no-await-in-loop
+    const productReference = await getProductReference(
+      product.ProductsSold.product_id,
+      auth,
+    );
 
-      const freight_per_item =
-        Number(shipment_value_intelipost) > 0
-          ? product_subtotal_percent * Number(shipment_value_intelipost)
-          : product_subtotal_percent * Number(orderComplete.shipment_value);
+    const product_subtotal =
+      Number(product.ProductsSold.quantity) *
+      Number(product.ProductsSold.price);
+    const product_subtotal_percent =
+      product_subtotal / Number(orderComplete.partial_total);
 
-      return {
-        netsuite_id: product.reference,
-        quantity: product.quantity,
-        freight_per_item,
-      };
-    },
-  );
+    const freight_per_item =
+      Number(shipment_value_intelipost) > 0
+        ? product_subtotal_percent * Number(shipment_value_intelipost)
+        : product_subtotal_percent * Number(orderComplete.shipment_value);
 
-  console.log('products', products);
+    products.push({
+      netsuite_id: productReference,
+      quantity: product.ProductsSold.quantity,
+      freight_per_item,
+    });
+  }
 
   const fullname = orderComplete.Customer.name.split(' ');
   const firstname = fullname[0];
@@ -168,9 +182,17 @@ const mountOrder = async (order: Order, auth: Auth): Promise<OrderNetsuite> => {
 };
 
 const orders = async () => {
-  await storage.init();
+  console.log('🚀 Comecei a gerar os pedidos.');
 
-  const auth = await storage.getItem('auth');
+  const responseAuth = await api.post('/auth', {
+    consumer_key: process.env.CONSUMER_KEY,
+    consumer_secret: process.env.CONSUMER_SECRET,
+    code: process.env.CONSUMER_CODE,
+  });
+
+  const auth = responseAuth.data;
+
+  console.log('🚀 Autentiquei na Tray.');
 
   const response = await api.get<Response>('/orders', {
     params: {
@@ -192,19 +214,35 @@ const orders = async () => {
     completedOrders.push(mountedOrder);
   }
 
-  const responseNetsuite = await apiNetsuite.post(
-    '/restlet.nl?script=220&deploy=1',
-    {
-      completedOrders,
-    },
-  );
+  console.log('🚀 Enviando os pedidos para o Netsuite.');
 
-  console.log('netsuite', responseNetsuite.data);
+  let responseNetsuite;
+  if (completedOrders?.length > 0) {
+    responseNetsuite = await apiNetsuite.post(
+      '/restlet.nl?script=220&deploy=1',
+      {
+        completedOrders,
+      },
+    );
+  }
 
-  // fazer chamada a api do netsuite enviando o completedOrders
-  // netsuite vai retornar um array de pedidos que deram certo
+  console.log('🚀 Netsuite response: ', responseNetsuite?.data);
 
-  // fazer um put na tray para cada pedido alterando seu status para 'Aguardando Envio'
+  // eslint-disable-next-line no-restricted-syntax
+  for (const order of responseNetsuite?.data) {
+    if (
+      order.netsuite_id !== 'netsuite_order_error' ||
+      order.netsuite_id !== 'netsuite_customer_error'
+    ) {
+      // eslint-disable-next-line no-await-in-loop
+      await api.put(`/orders/${order.id}?access_token=${auth.access_token}`, {
+        Order: {
+          status: 'AGUARDANDO ENVIO',
+          customer_note: `NETSUITE ORDER ID: ${order.netsuite_id}`,
+        },
+      });
+    }
+  }
 
   return completedOrders;
 };
