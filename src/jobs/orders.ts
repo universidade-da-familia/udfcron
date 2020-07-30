@@ -3,8 +3,8 @@ import { CronJob } from 'cron';
 import orderFunction from '../functions/orders';
 
 const auth = (): void => {
-  const Job = new CronJob(
-    '0 */2 * * * *',
+  const Job6 = new CronJob(
+    '0 0 6 * * *',
     async () => {
       await orderFunction();
     },
@@ -13,7 +13,18 @@ const auth = (): void => {
     'America/Sao_Paulo',
   );
 
-  Job.start();
+  const Job12 = new CronJob(
+    '0 0 12 * * *',
+    async () => {
+      await orderFunction();
+    },
+    null,
+    true,
+    'America/Sao_Paulo',
+  );
+
+  Job6.start();
+  Job12.start();
 };
 
 export default auth;

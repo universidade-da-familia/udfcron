@@ -230,6 +230,7 @@ define(['N/record', 'N/search'], function (record, search) {
         },
       });
 
+      salesOrder.setValue({ fieldId: 'custbody_udf_tray_order_id', value: context.id });
       salesOrder.setValue({ fieldId: 'trandate', value: new Date() });
       salesOrder.setValue({ fieldId: 'department', value: '3' });
       salesOrder.setValue({ fieldId: 'class', value: '1' });

@@ -3,6 +3,7 @@
 import axios from 'axios';
 
 import api from '../services/api';
+import apiIntelipost from '../services/apiIntelipost';
 
 import { AuthTray, OrderCompleteTray } from '../types/tray';
 import { OrderNetsuite, ProductsNetsuite } from '../types/netsuite';
@@ -66,12 +67,6 @@ const mountOrder = async (
   // console.log('method', orderComplete.payment_method_id);
   let shipment_value_intelipost = '0';
   if (orderComplete.shipment === 'Frete grátis') {
-    const headers = {
-      'Content-Type': 'application/json',
-      'api-key':
-        '1273704cf48278e8e198c13059267033a16a636c878dc8f6b21f069d9e3aa97d',
-    };
-
     const intelipostProducts = orderComplete.ProductsSold.map(
       ({ ProductsSold: product }) => {
         return {
@@ -88,15 +83,12 @@ const mountOrder = async (
       },
     );
 
-    const responseIntelipost = await axios.post(
+    const responseIntelipost = await apiIntelipost.post(
       'https://api.intelipost.com.br/api/v1/quote_by_product',
       {
         origin_zip_code: '17580000',
         destination_zip_code: orderComplete.Customer.zip_code.replace('-', ''),
         products: intelipostProducts,
-      },
-      {
-        headers,
       },
     );
 
@@ -226,22 +218,26 @@ const orders = async () => {
     );
   }
 
-  console.log('🚀 Netsuite response: ', responseNetsuite?.data);
+  if (responseNetsuite) {
+    console.log('🚀 Netsuite response: ', responseNetsuite?.data);
 
-  // eslint-disable-next-line no-restricted-syntax
-  for (const order of responseNetsuite?.data) {
-    if (
-      order.netsuite_id !== 'netsuite_order_error' ||
-      order.netsuite_id !== 'netsuite_customer_error'
-    ) {
-      // eslint-disable-next-line no-await-in-loop
-      await api.put(`/orders/${order.id}?access_token=${auth.access_token}`, {
-        Order: {
-          status: 'AGUARDANDO ENVIO',
-          customer_note: `NETSUITE ORDER ID: ${order.netsuite_id}`,
-        },
-      });
+    // eslint-disable-next-line no-restricted-syntax
+    for (const order of responseNetsuite?.data) {
+      if (
+        order.netsuite_id !== 'netsuite_order_error' &&
+        order.netsuite_id !== 'netsuite_customer_error'
+      ) {
+        // eslint-disable-next-line no-await-in-loop
+        await api.put(`/orders/${order.id}?access_token=${auth.access_token}`, {
+          Order: {
+            status: 'AGUARDANDO ENVIO',
+            customer_note: `NETSUITE ORDER ID: ${order.netsuite_id}`,
+          },
+        });
+      }
     }
+  } else {
+    console.log('🚀 Nao ha pedidos para enviar para o Netsuite');
   }
 
   return completedOrders;
