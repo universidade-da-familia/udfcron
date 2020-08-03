@@ -8,7 +8,11 @@ import { IntelipostShipmentOrder } from '../types/intelipost';
 const trackingCodeRouter = Router();
 
 trackingCodeRouter.post('/', async (request, response) => {
+  console.log('🚀 Chamei a api POST trackingcode.');
+
   const { nfe_access_key, tray_order_id } = request.body;
+
+  console.log(`🚀 NF-e: ${nfe_access_key} / Tray: ${tray_order_id}.`);
 
   const responseAuth = await api.post('/auth', {
     consumer_key: process.env.CONSUMER_KEY,
@@ -21,6 +25,8 @@ trackingCodeRouter.post('/', async (request, response) => {
   const response_intelipost = await apiIntelipost.get<IntelipostShipmentOrder>(
     `/shipment_order/invoice_key/${nfe_access_key}`,
   );
+
+  console.log(`🚀 Response intelipost: ${response_intelipost.data}`);
 
   if (response_intelipost.data.content.length > 0) {
     const {
@@ -41,8 +47,12 @@ trackingCodeRouter.post('/', async (request, response) => {
       },
     );
 
+    console.log('🚀 Pedido atualizado na tray com sucesso.');
+
     return response.status(204).send();
   }
+
+  console.log('🚀 Houve uma falha ao atualizar o pedido.');
 
   return response.status(500).send();
 });
