@@ -7,11 +7,13 @@ import { IntelipostShipmentOrder } from '../types/intelipost';
 
 const trackingCodeRouter = Router();
 
-trackingCodeRouter.post('/', async (request, response) => {
+trackingCodeRouter.post('/:nfe/:id', async (request, response) => {
+  const { nfe, id } = request.params;
+
   console.log('🚀 Chamei a api POST trackingcode.');
   console.log('🚀 Request LOG BODY', request.body);
   console.log('🚀 Request LOG PARAMS', request.params);
-  console.log('🚀 Request LOG QUERY', request.query);
+  console.log('🚀 Request LOG PARAMS 2', nfe, id);
 
   const { nfe_access_key, tray_order_id } = request.body;
 
