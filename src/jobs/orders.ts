@@ -24,7 +24,7 @@ const auth = (): void => {
   );
 
   const JobTeste = new CronJob(
-    '0 18 12 * * *',
+    '0 25 12 * * *',
     async () => {
       await orderFunction();
     },
