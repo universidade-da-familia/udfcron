@@ -8,10 +8,9 @@ import { IntelipostShipmentOrder } from '../types/intelipost';
 const trackingCodeRouter = Router();
 
 trackingCodeRouter.post('/:nfe/:id', async (request, response) => {
-  const { nfe, id } = request.params;
+  const { nfe_access_key, tray_order_id } = request.body;
 
-  console.log('🚀 Body', request.body);
-  console.log(`🚀 NF-e: ${nfe} / Tray: ${id}.`);
+  console.log(`🚀 NF-e: ${nfe_access_key} / Tray: ${tray_order_id}.`);
 
   const responseAuth = await api.post('/auth', {
     consumer_key: process.env.CONSUMER_KEY,
@@ -22,7 +21,7 @@ trackingCodeRouter.post('/:nfe/:id', async (request, response) => {
   const auth = responseAuth.data;
 
   const response_intelipost = await apiIntelipost.get<IntelipostShipmentOrder>(
-    `/shipment_order/invoice_key/${nfe}`,
+    `/shipment_order/invoice_key/${nfe_access_key}`,
   );
 
   console.log(`🚀 Response intelipost: ${response_intelipost.data}`);
@@ -35,17 +34,31 @@ trackingCodeRouter.post('/:nfe/:id', async (request, response) => {
 
     const sending_date = shipped_date_iso.split('T')[0];
 
-    await api.put(`/orders/${id}?access_token=${auth.access_token}`, {
-      Order: {
-        status: 'ENVIADO',
-        sending_code: tracking_code || '',
-        sending_date: sending_date || '',
-      },
-    });
+    const responseTray = await api.get(
+      `/orders/${tray_order_id}?access_token=${auth.access_token}`,
+    );
 
-    console.log('🚀 Pedido atualizado na tray com sucesso.');
+    const { status } = responseTray.data;
 
-    return response.status(204).send();
+    if (status === 'AGUARDANDO ENVIO') {
+      await api.put(
+        `/orders/${tray_order_id}?access_token=${auth.access_token}`,
+        {
+          Order: {
+            status: 'ENVIADO',
+            sending_code: tracking_code || '',
+            sending_date: sending_date || '',
+          },
+        },
+      );
+      console.log('🚀 Pedido atualizado na tray com sucesso.');
+
+      return response.status(204).send();
+    }
+
+    console.log(`🚀 Pedido não atualizado na tray. STATUS PEDIDO: ${status}`);
+
+    return response.status(304).send();
   }
 
   console.log('🚀 Houve uma falha ao atualizar o pedido.');
