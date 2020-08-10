@@ -9,7 +9,9 @@ const trackingCodeRouter = Router();
 
 trackingCodeRouter.post('/', async (request, response) => {
   console.log('🚀 Chamei a api POST trackingcode.');
-  console.log('🚀 Request LOG', request);
+  console.log('🚀 Request LOG BODY', request.body);
+  console.log('🚀 Request LOG PARAMS', request.params);
+  console.log('🚀 Request LOG QUERY', request.query);
 
   const { nfe_access_key, tray_order_id } = request.body;
 
