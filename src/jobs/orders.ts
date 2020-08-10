@@ -23,8 +23,19 @@ const auth = (): void => {
     'America/Sao_Paulo',
   );
 
+  const JobTeste = new CronJob(
+    '0 18 12 * * *',
+    async () => {
+      await orderFunction();
+    },
+    null,
+    true,
+    'America/Sao_Paulo',
+  );
+
   Job6.start();
   Job12.start();
+  JobTeste.start();
 };
 
 export default auth;
