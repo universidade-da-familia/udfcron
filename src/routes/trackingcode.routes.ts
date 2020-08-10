@@ -10,14 +10,7 @@ const trackingCodeRouter = Router();
 trackingCodeRouter.post('/:nfe/:id', async (request, response) => {
   const { nfe, id } = request.params;
 
-  console.log('🚀 Chamei a api POST trackingcode.');
-  console.log('🚀 Request LOG BODY', request.body);
-  console.log('🚀 Request LOG PARAMS', request.params);
-  console.log('🚀 Request LOG PARAMS 2', nfe, id);
-
-  const { nfe_access_key, tray_order_id } = request.body;
-
-  console.log(`🚀 NF-e: ${nfe_access_key} / Tray: ${tray_order_id}.`);
+  console.log(`🚀 NF-e: ${nfe} / Tray: ${id}.`);
 
   const responseAuth = await api.post('/auth', {
     consumer_key: process.env.CONSUMER_KEY,
@@ -28,7 +21,7 @@ trackingCodeRouter.post('/:nfe/:id', async (request, response) => {
   const auth = responseAuth.data;
 
   const response_intelipost = await apiIntelipost.get<IntelipostShipmentOrder>(
-    `/shipment_order/invoice_key/${nfe_access_key}`,
+    `/shipment_order/invoice_key/${nfe}`,
   );
 
   console.log(`🚀 Response intelipost: ${response_intelipost.data}`);
@@ -41,16 +34,13 @@ trackingCodeRouter.post('/:nfe/:id', async (request, response) => {
 
     const sending_date = shipped_date_iso.split('T')[0];
 
-    await api.put(
-      `/orders/${tray_order_id}?access_token=${auth.access_token}`,
-      {
-        Order: {
-          status: 'ENVIADO',
-          sending_code: tracking_code || '',
-          sending_date: sending_date || '',
-        },
+    await api.put(`/orders/${id}?access_token=${auth.access_token}`, {
+      Order: {
+        status: 'ENVIADO',
+        sending_code: tracking_code || '',
+        sending_date: sending_date || '',
       },
-    );
+    });
 
     console.log('🚀 Pedido atualizado na tray com sucesso.');
 
