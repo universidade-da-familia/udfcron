@@ -10,6 +10,7 @@ const trackingCodeRouter = Router();
 trackingCodeRouter.post('/:nfe/:id', async (request, response) => {
   const { nfe, id } = request.params;
 
+  console.log('🚀 Body', request.body);
   console.log(`🚀 NF-e: ${nfe} / Tray: ${id}.`);
 
   const responseAuth = await api.post('/auth', {
