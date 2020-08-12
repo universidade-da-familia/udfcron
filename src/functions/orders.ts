@@ -189,7 +189,6 @@ const orders = async () => {
   const response = await api.get<Response>('/orders', {
     params: {
       access_token: auth.access_token,
-      // limit: 1,
       status: '%A ENVIAR%',
     },
   });
