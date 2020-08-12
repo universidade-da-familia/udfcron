@@ -38,7 +38,7 @@ trackingCodeRouter.post('/', async (request, response) => {
       `/orders/${tray_order_id}?access_token=${auth.access_token}`,
     );
 
-    const { status } = responseTray.data;
+    const { status } = responseTray.data.Order;
 
     if (status === 'AGUARDANDO ENVIO') {
       await api.put(
