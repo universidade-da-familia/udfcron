@@ -64,7 +64,6 @@ const mountOrder = async (
 
   const orderComplete = responseComplete.data.Order;
 
-  // console.log('method', orderComplete.payment_method_id);
   let shipment_value_intelipost = '0';
   if (orderComplete.shipment === 'Frete grátis') {
     const intelipostProducts = orderComplete.ProductsSold.map(
