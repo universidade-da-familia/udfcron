@@ -174,72 +174,79 @@ const mountOrder = async (
 };
 
 const orders = async () => {
-  console.log('🚀 Comecei a gerar os pedidos.');
+  try {
+    console.log('🚀 Comecei a gerar os pedidos.');
 
-  const responseAuth = await api.post('/auth', {
-    consumer_key: process.env.CONSUMER_KEY,
-    consumer_secret: process.env.CONSUMER_SECRET,
-    code: process.env.CONSUMER_CODE,
-  });
+    const responseAuth = await api.post('/auth', {
+      consumer_key: process.env.CONSUMER_KEY,
+      consumer_secret: process.env.CONSUMER_SECRET,
+      code: process.env.CONSUMER_CODE,
+    });
 
-  const auth = responseAuth.data;
+    const auth = responseAuth.data;
 
-  console.log('🚀 Autentiquei na Tray.');
+    console.log('🚀 Autentiquei na Tray.');
 
-  const response = await api.get<Response>('/orders', {
-    params: {
-      access_token: auth.access_token,
-      status: '%A ENVIAR%',
-    },
-  });
-
-  const trayOrders = response.data.Orders;
-
-  const completedOrders = [] as OrderNetsuite[];
-
-  // eslint-disable-next-line no-restricted-syntax
-  for (const order of trayOrders) {
-    // eslint-disable-next-line no-await-in-loop
-    const mountedOrder = await mountOrder(order, auth);
-
-    completedOrders.push(mountedOrder);
-  }
-
-  console.log('🚀 Enviando os pedidos para o Netsuite.');
-
-  let responseNetsuite;
-  if (completedOrders?.length > 0) {
-    responseNetsuite = await apiNetsuite.post(
-      '/restlet.nl?script=220&deploy=1',
-      {
-        completedOrders,
+    const response = await api.get<Response>('/orders', {
+      params: {
+        access_token: auth.access_token,
+        status: '%A ENVIAR%',
       },
-    );
-  }
+    });
 
-  if (responseNetsuite) {
-    console.log('🚀 Netsuite response: ', responseNetsuite?.data);
+    const trayOrders = response.data.Orders;
+
+    const completedOrders = [] as OrderNetsuite[];
 
     // eslint-disable-next-line no-restricted-syntax
-    for (const order of responseNetsuite?.data) {
-      if (
-        order.netsuite_id !== 'netsuite_order_error' &&
-        order.netsuite_id !== 'netsuite_customer_error'
-      ) {
-        // eslint-disable-next-line no-await-in-loop
-        await api.put(`/orders/${order.id}?access_token=${auth.access_token}`, {
-          Order: {
-            status: 'AGUARDANDO ENVIO',
-            customer_note: `NETSUITE ORDER ID: ${order.netsuite_id}`,
-          },
-        });
-      }
-    }
-  } else {
-    console.log('🚀 Nao ha pedidos para enviar para o Netsuite');
-  }
+    for (const order of trayOrders) {
+      // eslint-disable-next-line no-await-in-loop
+      const mountedOrder = await mountOrder(order, auth);
 
-  return completedOrders;
+      completedOrders.push(mountedOrder);
+    }
+
+    console.log('🚀 Enviando os pedidos para o Netsuite.');
+
+    let responseNetsuite;
+    if (completedOrders?.length > 0) {
+      responseNetsuite = await apiNetsuite.post(
+        '/restlet.nl?script=220&deploy=1',
+        {
+          completedOrders,
+        },
+      );
+    }
+
+    if (responseNetsuite) {
+      console.log('🚀 Netsuite response: ', responseNetsuite?.data);
+
+      // eslint-disable-next-line no-restricted-syntax
+      for (const order of responseNetsuite?.data) {
+        if (
+          order.netsuite_id !== 'netsuite_order_error' &&
+          order.netsuite_id !== 'netsuite_customer_error'
+        ) {
+          // eslint-disable-next-line no-await-in-loop
+          await api.put(
+            `/orders/${order.id}?access_token=${auth.access_token}`,
+            {
+              Order: {
+                status: 'AGUARDANDO ENVIO',
+                customer_note: `NETSUITE ORDER ID: ${order.netsuite_id}`,
+              },
+            },
+          );
+        }
+      }
+    } else {
+      console.log('🚀 Nao ha pedidos para enviar para o Netsuite');
+    }
+
+    return completedOrders;
+  } catch (err) {
+    console.log('ERROR', err);
+  }
 };
 
 export default orders;
