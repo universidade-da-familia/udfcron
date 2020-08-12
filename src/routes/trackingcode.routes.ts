@@ -7,7 +7,7 @@ import { IntelipostShipmentOrder } from '../types/intelipost';
 
 const trackingCodeRouter = Router();
 
-trackingCodeRouter.post('/:nfe/:id', async (request, response) => {
+trackingCodeRouter.post('/', async (request, response) => {
   const { nfe_access_key, tray_order_id } = request.body;
 
   console.log(`🚀 NF-e: ${nfe_access_key} / Tray: ${tray_order_id}.`);
