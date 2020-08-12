@@ -172,7 +172,7 @@ const mountOrder = async (
   };
 };
 
-const orders = async () => {
+const orders = async (): Promise<void> => {
   try {
     console.log('🚀 Comecei a gerar os pedidos.');
 
@@ -241,10 +241,8 @@ const orders = async () => {
     } else {
       console.log('🚀 Nao ha pedidos para enviar para o Netsuite');
     }
-
-    return completedOrders;
   } catch (err) {
-    console.log('ERROR', err);
+    console.log('🚀 Erorr', err.message);
   }
 };
 
