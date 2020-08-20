@@ -150,7 +150,14 @@ const mountOrder = async (
       is_business: !!orderComplete.Customer.cnpj,
       cpf_cnpj: orderComplete.Customer.cnpj
         ? orderComplete.Customer.cnpj
-        : orderComplete.Customer.cpf,
+            .replace('.', '')
+            .replace('.', '')
+            .replace('/', '')
+            .replace('-', '')
+        : orderComplete.Customer.cpf
+            .replace('.', '')
+            .replace('.', '')
+            .replace('-', ''),
       name: orderComplete.Customer.name,
       firstname,
       lastname,
@@ -184,7 +191,7 @@ const orders = async (): Promise<void> => {
 
     const auth = responseAuth.data;
 
-    console.log('🚀 Autentiquei na Tray.');
+    console.log('🚀 Autentiquei na Tray.', auth.access_token);
 
     const response = await api.get<Response>('/orders', {
       params: {
@@ -242,7 +249,7 @@ const orders = async (): Promise<void> => {
       console.log('🚀 Nao ha pedidos para enviar para o Netsuite');
     }
   } catch (err) {
-    console.log('🚀 Erorr', err.message);
+    console.log('🚀 Error', err.message);
   }
 };
 

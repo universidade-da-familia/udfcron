@@ -25,12 +25,8 @@ define(['N/record', 'N/search'], function (record, search) {
 
   function createCustomer(context) {
     try {
-      const customer = record.create({ type: record.Type.CUSTOMER });
-
-      // id da entidade no portal
-      customer.setValue({
-        fieldId: 'custentityid_dashboard_cliente',
-        value: 'TRAY' + context.id,
+      const customer = record.create({
+        type: record.Type.CUSTOMER
       });
 
       if (context.is_business) {
@@ -73,10 +69,10 @@ define(['N/record', 'N/search'], function (record, search) {
         value: true,
       });
 
-      if (context.sex === 'F') {
+      if (context.sex == 'F') {
         customer.setValue({ fieldId: 'custentity_rsc_sexo', value: '1' });
       }
-      if (context.sex === 'M') {
+      if (context.sex == 'M') {
         customer.setValue({ fieldId: 'custentity_rsc_sexo', value: '2' });
       }
 
@@ -84,6 +80,7 @@ define(['N/record', 'N/search'], function (record, search) {
 
       return customerId
     } catch (err) {
+      log.debug({ title: 'CUSTOMER ERROR', details: err });
       return 'netsuite_customer_error'
     }
   }
@@ -96,10 +93,10 @@ define(['N/record', 'N/search'], function (record, search) {
         isDynamic: true,
       });
 
-      customer.setValue({
-        fieldId: 'custentity_enl_legalname',
-        value: context.customer.name,
-      });
+      //customer.setValue({
+      //  fieldId: 'custentity_enl_legalname',
+      //  value: context.customer.name,
+      //});
 
       customer.setValue({
         fieldId: 'custentity_enl_ienum',
@@ -239,16 +236,36 @@ define(['N/record', 'N/search'], function (record, search) {
       if (context.payment_method === 'Boleto - Yapay') {
         salesOrder.setValue({ fieldId: 'terms', value: '18' });
       } else {
-        if (context.installment === 1) {
+        if (context.installment == 1) {
           salesOrder.setValue({ fieldId: 'terms', value: '20' });
         }
 
-        if (context.installment === 2) {
+        if (context.installment == 2) {
           salesOrder.setValue({ fieldId: 'terms', value: '24' });
         }
 
-        if (context.installment === 3) {
+        if (context.installment == 3) {
           salesOrder.setValue({ fieldId: 'terms', value: '25' });
+        }
+
+        if (context.installment == 4) {
+          salesOrder.setValue({ fieldId: 'terms', value: '30' });
+        }
+
+        if (context.installment == 5) {
+          salesOrder.setValue({ fieldId: 'terms', value: '31' });
+        }
+
+        if (context.installment == 6) {
+          salesOrder.setValue({ fieldId: 'terms', value: '32' });
+        }
+
+        if (context.installment == 7) {
+          salesOrder.setValue({ fieldId: 'terms', value: '33' });
+        }
+
+        if (context.installment == 8) {
+          salesOrder.setValue({ fieldId: 'terms', value: '34' });
         }
 
         // grava o pedido como pendente de aprovação (pagamento pendente na payu)
@@ -526,6 +543,7 @@ define(['N/record', 'N/search'], function (record, search) {
 
       return salesOrderId
     } catch (err) {
+      log.debug({ title: 'SALES ERROR', details: err })
       return 'netsuite_order_error'
     }
   }
