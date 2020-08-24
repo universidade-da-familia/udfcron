@@ -183,7 +183,7 @@ const orders = async (): Promise<void> => {
   try {
     console.log('🚀 Comecei a gerar os pedidos.');
 
-    const responseAuth = await api.post('/auth', {
+    const responseAuth = await api.post<AuthTray>('/auth', {
       consumer_key: process.env.CONSUMER_KEY,
       consumer_secret: process.env.CONSUMER_SECRET,
       code: process.env.CONSUMER_CODE,

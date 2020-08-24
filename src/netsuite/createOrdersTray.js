@@ -429,6 +429,26 @@ define(['N/record', 'N/search'], function (record, search) {
           fieldId: 'custbody_enl_carrierid',
           value: 2,
         });
+      } else if (context.shipment === 'Azul Cargo Express') {
+        salesOrder.setValue({
+          fieldId: 'shipmethod',
+          value: 3655,
+        });
+
+        salesOrder.setValue({
+          fieldId: 'custbody_enl_carrierid',
+          value: 1,
+        });
+      } else if (context.shipment === 'BPEX TRANSPORTES') {
+        salesOrder.setValue({
+          fieldId: 'shipmethod',
+          value: 3715,
+        });
+
+        salesOrder.setValue({
+          fieldId: 'custbody_enl_carrierid',
+          value: 14,
+        });
       } else if (
         context.shipment === 'Retirar na UDF'
       ) {

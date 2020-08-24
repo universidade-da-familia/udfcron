@@ -1,5 +1,4 @@
 import axios from 'axios';
-import api from './api';
 
 const apiIntelipost = axios.create({
   baseURL: 'https://api.intelipost.com.br/api/v1',
