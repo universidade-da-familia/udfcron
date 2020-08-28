@@ -183,13 +183,15 @@ const orders = async (): Promise<void> => {
   try {
     console.log('🚀 Comecei a gerar os pedidos.');
 
+    let auth = null;
+
     const responseAuth = await api.post<AuthTray>('/auth', {
       consumer_key: process.env.CONSUMER_KEY,
       consumer_secret: process.env.CONSUMER_SECRET,
       code: process.env.CONSUMER_CODE,
     });
 
-    const auth = responseAuth.data;
+    auth = responseAuth.data;
 
     console.log('🚀 Autentiquei na Tray.', auth.access_token);
 
@@ -234,6 +236,17 @@ const orders = async (): Promise<void> => {
           order.netsuite_id !== 'netsuite_customer_error'
         ) {
           // eslint-disable-next-line no-await-in-loop
+          const responseAuthLoop = await api.post<AuthTray>('/auth', {
+            consumer_key: process.env.CONSUMER_KEY,
+            consumer_secret: process.env.CONSUMER_SECRET,
+            code: process.env.CONSUMER_CODE,
+          });
+
+          auth = responseAuthLoop.data;
+
+          console.log('🚀 Autentiquei na Tray em loop.', auth.access_token);
+
+          // eslint-disable-next-line no-await-in-loop
           await api.put(
             `/orders/${order.id}?access_token=${auth.access_token}`,
             {
@@ -245,6 +258,8 @@ const orders = async (): Promise<void> => {
           );
         }
       }
+
+      console.log('🚀 Todo o processo foi executado com sucesso');
     } else {
       console.log('🚀 Nao ha pedidos para enviar para o Netsuite');
     }
