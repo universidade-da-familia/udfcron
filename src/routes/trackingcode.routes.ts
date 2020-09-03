@@ -1,38 +1,24 @@
 import { Router } from 'express';
 
 import api from '../services/api';
-import apiIntelipost from '../services/apiIntelipost';
-
-import { IntelipostShipmentOrder } from '../types/intelipost';
 
 const trackingCodeRouter = Router();
 
 trackingCodeRouter.post('/', async (request, response) => {
-  const { nfe_access_key, tray_order_id } = request.body;
+  try {
+    const { ship_date, tray_order_id } = request.body;
 
-  console.log(`🚀 NF-e: ${nfe_access_key} / Tray: ${tray_order_id}.`);
+    console.log(`🚀 Ship date: ${ship_date} / Tray: ${tray_order_id}.`);
 
-  const responseAuth = await api.post('/auth', {
-    consumer_key: process.env.CONSUMER_KEY,
-    consumer_secret: process.env.CONSUMER_SECRET,
-    code: process.env.CONSUMER_CODE,
-  });
+    const responseAuth = await api.post('/auth', {
+      consumer_key: process.env.CONSUMER_KEY,
+      consumer_secret: process.env.CONSUMER_SECRET,
+      code: process.env.CONSUMER_CODE,
+    });
 
-  const auth = responseAuth.data;
+    const auth = responseAuth.data;
 
-  const response_intelipost = await apiIntelipost.get<IntelipostShipmentOrder>(
-    `/shipment_order/invoice_key/${nfe_access_key}`,
-  );
-
-  console.log(`🚀 Response intelipost: ${response_intelipost.data}`);
-
-  if (response_intelipost.data.content.length > 0) {
-    const {
-      shipped_date_iso,
-      tracking_code,
-    } = response_intelipost.data.content[0].shipment_order_volume_array[0];
-
-    const sending_date = shipped_date_iso.split('T')[0];
+    const sending_date = ship_date.split('T')[0];
 
     const responseTray = await api.get(
       `/orders/${tray_order_id}?access_token=${auth.access_token}`,
@@ -46,7 +32,6 @@ trackingCodeRouter.post('/', async (request, response) => {
         {
           Order: {
             status: 'ENVIADO',
-            sending_code: tracking_code || '',
             sending_date: sending_date || '',
           },
         },
@@ -59,11 +44,11 @@ trackingCodeRouter.post('/', async (request, response) => {
     console.log(`🚀 Pedido não atualizado na tray. STATUS PEDIDO: ${status}`);
 
     return response.status(304).send();
+  } catch (err) {
+    console.log('🚀 Houve uma falha ao atualizar o pedido.');
+
+    return response.status(err.status).send(err.message);
   }
-
-  console.log('🚀 Houve uma falha ao atualizar o pedido.');
-
-  return response.status(500).send();
 });
 
 export default trackingCodeRouter;
