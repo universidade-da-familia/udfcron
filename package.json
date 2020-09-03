@@ -1,5 +1,5 @@
 {
-  "name": "desafio-06",
+  "name": "udf-cron-middleware",
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",

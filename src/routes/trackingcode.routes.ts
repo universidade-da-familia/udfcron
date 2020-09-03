@@ -20,6 +20,8 @@ trackingCodeRouter.post('/', async (request, response) => {
 
     const sending_date = ship_date.split('T')[0];
 
+    console.log(`🚀 Sending date: ${sending_date}`);
+
     const responseTray = await api.get(
       `/orders/${tray_order_id}?access_token=${auth.access_token}`,
     );
