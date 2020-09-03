@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { format } from 'date-fns';
 
 import api from '../services/api';
 
@@ -18,7 +19,7 @@ trackingCodeRouter.post('/', async (request, response) => {
 
     const auth = responseAuth.data;
 
-    const sending_date = ship_date.split('T')[0];
+    const sending_date = format(new Date(ship_date), 'yyyy-MM-dd');
 
     console.log(`🚀 Sending date: ${sending_date}`);
 
