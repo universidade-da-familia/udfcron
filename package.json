@@ -12,11 +12,13 @@
     "test": "cross-env NODE_ENV=test jest"
   },
   "dependencies": {
+    "@types/crypto-js": "^4.0.0",
     "@types/node-persist": "^3.0.0",
     "axios": "^0.19.2",
     "body-parser": "^1.19.0",
     "cors": "^2.8.5",
     "cron": "^1.8.2",
+    "crypto-js": "^4.0.0",
     "date-fns": "^2.16.1",
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
