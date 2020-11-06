@@ -30,7 +30,7 @@ const apiNetsuite = axios.create({
   baseURL: 'https://5260046.restlets.api.netsuite.com/app/site/hosting',
   headers: {
     "Content-Type": "application/json",
-    Authorization: OAuth,
+    Authorization: OAuth(),
   },
 });
 
