@@ -4,7 +4,7 @@ import axios from 'axios';
 
 import api from '../services/api';
 import apiIntelipost from '../services/apiIntelipost';
-import OAuth from './orderHelper';
+import { OAuthHelper } from './orderHelper';
 
 import { AuthTray, OrderCompleteTray } from '../types/tray';
 import { OrderNetsuite, ProductsNetsuite } from '../types/netsuite';
@@ -28,10 +28,6 @@ interface Order {
 
 const apiNetsuite = axios.create({
   baseURL: 'https://5260046.restlets.api.netsuite.com/app/site/hosting',
-  headers: {
-    "Content-Type": "application/json",
-    Authorization: OAuth(),
-  },
 });
 
 const getProductReference = async (
@@ -213,7 +209,10 @@ const orders = async (): Promise<void> => {
 
       completedOrders.push(mountedOrder);
     }
-    
+
+    let oauth = new OAuthHelper()
+
+    console.log(oauth.oauth())
     console.log('🚀 Enviando os pedidos para o Netsuite.');
 
     let responseNetsuite;
@@ -223,6 +222,12 @@ const orders = async (): Promise<void> => {
         {
           completedOrders,
         },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: oauth.oauth(),
+          },
+        }
       );
     }
 
